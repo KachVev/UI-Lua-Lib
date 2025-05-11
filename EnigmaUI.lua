@@ -1,115 +1,147 @@
-
--- Enigma UI Framework by KachVev
-
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
 local Enigma = {}
+Enigma.__index = Enigma
 
-local theme = {
-    Background = Color3.fromRGB(20, 20, 20),
-    TabBackground = Color3.fromRGB(25, 25, 25),
-    SectionBackground = Color3.fromRGB(30, 30, 30),
-    Border = Color3.fromRGB(40, 40, 40),
-    Accent = Color3.fromRGB(80, 200, 120),
-    Text = Color3.fromRGB(220, 220, 220),
-    SubText = Color3.fromRGB(150, 150, 150)
-}
+local function create(class, props)
+	local obj = Instance.new(class)
+	for k, v in pairs(props) do
+		obj[k] = v
+	end
+	return obj
+end
+
+local function tween(obj, time, props)
+	TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
+end
 
 function Enigma:Create(title)
-    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    ScreenGui.Name = "EnigmaUI"
-    
-    local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0, 600, 0, 400)
-    Main.Position = UDim2.new(0.5, -300, 0.5, -200)
-    Main.BackgroundColor3 = theme.Background
-    Main.BorderSizePixel = 0
-    Main.Name = "Main"
-    Main.Active = true
-    Main.Draggable = true
+	local self = setmetatable({}, Enigma)
 
-    local TopBar = Instance.new("Frame", Main)
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.BackgroundColor3 = theme.TabBackground
-    TopBar.BorderSizePixel = 0
+	local screenGui = create("ScreenGui", {
+		Name = "EnigmaUI",
+		ResetOnSpawn = false,
+		Parent = game.CoreGui
+	})
 
-    local Title = Instance.new("TextLabel", TopBar)
-    Title.Size = UDim2.new(1, 0, 1, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = title
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 14
-    Title.TextColor3 = theme.Accent
+	local main = create("Frame", {
+		Name = "Main",
+		Size = UDim2.new(0, 500, 0, 400),
+		Position = UDim2.new(0.5, -250, 0.5, -200),
+		BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Parent = screenGui
+	})
 
-    local TabContainer = Instance.new("Frame", Main)
-    TabContainer.Position = UDim2.new(0, 0, 0, 30)
-    TabContainer.Size = UDim2.new(1, 0, 0, 30)
-    TabContainer.BackgroundColor3 = theme.Background
-    TabContainer.BorderSizePixel = 0
+	create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = main})
 
-    local Tabs = {}
-    local ActiveTab = nil
+	local titleLabel = create("TextLabel", {
+		Text = title,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundTransparency = 1,
+		TextColor3 = Color3.new(1, 1, 1),
+		Font = Enum.Font.GothamBold,
+		TextSize = 20,
+		Parent = main
+	})
 
-    function Enigma:Tab(name)
-        local TabButton = Instance.new("TextButton", TabContainer)
-        TabButton.Size = UDim2.new(0, 100, 1, 0)
-        TabButton.BackgroundColor3 = theme.TabBackground
-        TabButton.Text = name
-        TabButton.Font = Enum.Font.Gotham
-        TabButton.TextColor3 = theme.Text
-        TabButton.TextSize = 12
-        TabButton.BorderSizePixel = 0
+	local tabHolder = create("Frame", {
+		Name = "Tabs",
+		Size = UDim2.new(1, 0, 0, 30),
+		Position = UDim2.new(0, 0, 0, 40),
+		BackgroundTransparency = 1,
+		Parent = main
+	})
 
-        local TabFrame = Instance.new("ScrollingFrame", Main)
-        TabFrame.Position = UDim2.new(0, 0, 0, 60)
-        TabFrame.Size = UDim2.new(1, 0, 1, -60)
-        TabFrame.BackgroundColor3 = theme.Background
-        TabFrame.BorderSizePixel = 0
-        TabFrame.Visible = false
-        TabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-        TabFrame.ScrollBarThickness = 6
-        TabFrame.Name = name .. "_Tab"
+	local tabLayout = create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 5),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = tabHolder
+	})
 
-        local Layout = Instance.new("UIListLayout", TabFrame)
-        Layout.Padding = UDim.new(0, 10)
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
+	local contentHolder = create("Frame", {
+		Name = "Content",
+		Size = UDim2.new(1, -20, 1, -80),
+		Position = UDim2.new(0, 10, 0, 70),
+		BackgroundTransparency = 1,
+		Parent = main
+	})
 
-        TabButton.MouseButton1Click:Connect(function()
-            if ActiveTab then
-                ActiveTab.Visible = false
-            end
-            ActiveTab = TabFrame
-            TabFrame.Visible = true
-        end)
+	self.Tabs = {}
+	self.ContentHolder = contentHolder
+	self.TabHolder = tabHolder
+	self.Main = main
 
-        Tabs[name] = TabFrame
+	return self
+end
 
-        local TabApi = {}
+function Enigma:Tab(name)
+	local tabBtn = create("TextButton", {
+		Text = name,
+		Size = UDim2.new(0, 100, 1, 0),
+		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+		TextColor3 = Color3.new(1, 1, 1),
+		Font = Enum.Font.Gotham,
+		TextSize = 14,
+		Parent = self.TabHolder
+	})
 
-        function TabApi:Section(title)
-            local Section = Instance.new("Frame", TabFrame)
-            Section.Size = UDim2.new(1, -20, 0, 30)
-            Section.BackgroundColor3 = theme.SectionBackground
-            Section.BorderSizePixel = 0
-            Section.LayoutOrder = 1
+	create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabBtn})
 
-            local Label = Instance.new("TextLabel", Section)
-            Label.Size = UDim2.new(1, 0, 1, 0)
-            Label.BackgroundTransparency = 1
-            Label.Font = Enum.Font.GothamBold
-            Label.Text = title
-            Label.TextSize = 13
-            Label.TextColor3 = theme.Text
-            Label.TextXAlignment = Enum.TextXAlignment.Left
+	local tabPage = create("Frame", {
+		Visible = false,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Parent = self.ContentHolder
+	})
 
-            return Section
-        end
+	tabBtn.MouseButton1Click:Connect(function()
+		for _, t in pairs(self.Tabs) do
+			t.Page.Visible = false
+		end
+		tabPage.Visible = true
+	end)
 
-        return TabApi
-    end
+	local newTab = {Page = tabPage}
+	table.insert(self.Tabs, newTab)
 
-    return Enigma
+	function newTab:Label(text)
+		local label = create("TextLabel", {
+			Text = text,
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundTransparency = 1,
+			TextColor3 = Color3.fromRGB(200, 200, 200),
+			Font = Enum.Font.Gotham,
+			TextSize = 14,
+			Parent = tabPage
+		})
+	end
+
+	function newTab:Button(text, callback)
+		local button = create("TextButton", {
+			Text = text,
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+			TextColor3 = Color3.new(1, 1, 1),
+			Font = Enum.Font.Gotham,
+			TextSize = 14,
+			Parent = tabPage
+		})
+
+		create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = button})
+
+		button.MouseButton1Click:Connect(function()
+			if callback then callback() end
+		end)
+	end
+
+
+	return newTab
 end
 
 return Enigma
