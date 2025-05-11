@@ -202,24 +202,34 @@ function EnigmaUI:Create(title)
 
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local query = searchBox.Text:lower()
+        local isEmpty = query == ""
+
         for _, page in pairs(contentHolder:GetChildren()) do
             local hasVisible = false
             local matched = {}
+
             for _, card in pairs(page:GetChildren()) do
                 if card:IsA("Frame") then
                     local label = card:FindFirstChildOfClass("TextLabel")
-                    local match = label and label.Text:lower():find(query)
-                    card.Visible = match ~= nil
+                    local match = isEmpty or (label and label.Text:lower():find(query))
+                    card.Visible = match
                     if match then
                         table.insert(matched, card)
                         hasVisible = true
                     end
                 end
             end
-            page.Visible = hasVisible
+
+            if isEmpty then
+                page.Visible = page == contentHolder:GetChildren()[1]
+            else
+                page.Visible = hasVisible
+            end
+
             for i, v in ipairs(matched) do
                 v.LayoutOrder = i
             end
+
             local count = #matched
             for _, card in pairs(page:GetChildren()) do
                 if card:IsA("Frame") and not table.find(matched, card) then
@@ -228,13 +238,15 @@ function EnigmaUI:Create(title)
                 end
             end
         end
+
         for _, sidebarButton in pairs(sidebar:GetChildren()) do
             if sidebarButton:IsA("TextButton") then
                 local page = contentHolder:FindFirstChild("Category_" .. sidebarButton.Text)
-                sidebarButton.Visible = page and page.Visible
+                sidebarButton.Visible = isEmpty or (page and page.Visible)
             end
         end
     end)
+
 
     return self
 end
