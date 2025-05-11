@@ -1,5 +1,5 @@
 
---// Enigma UI Full
+-- Enigma UI Minimal (No Slider, Smooth Title Animation)
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -75,15 +75,18 @@ function EnigmaUI:Create(title)
     titleLabel.TextColor3 = theme.Text
 
     task.spawn(function()
-        while true do
-            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        while task.wait(2) do
+            local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextColor3 = theme.Accent
-            }):Play()
-            task.wait(1)
-            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            })
+            fadeIn:Play()
+            fadeIn.Completed:Wait()
+
+            local fadeOut = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextColor3 = theme.Text
-            }):Play()
-            task.wait(1)
+            })
+            fadeOut:Play()
+            fadeOut.Completed:Wait()
         end
     end)
 
@@ -192,64 +195,6 @@ function EnigmaUI:Create(title)
                 callback(state)
             end)
             table.insert(allElements, {button = toggle, card = card, label = label})
-        end
-
-        function api:Slider(text, min, max, default, callback)
-            local card, label = createCard(text .. ": " .. tostring(default))
-            local slider = Instance.new("TextButton", card)
-            slider.Size = UDim2.new(0, 200, 0, 10)
-            slider.Position = UDim2.new(1, -210, 0.5, -5)
-            slider.BackgroundColor3 = theme.Accent
-            slider.Text = ""
-            local function update(pos)
-                local pct = math.clamp((pos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                local value = math.floor(min + (max - min) * pct)
-                label.Text = text .. ": " .. tostring(value)
-                callback(value)
-            end
-            slider.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    update(input.Position)
-                end
-            end)
-            UserInputService.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                    update(input.Position)
-                end
-            end)
-            table.insert(allElements, {button = slider, card = card, label = label})
-        end
-
-        function api:Bind(text, defaultKey, callback)
-            local card, label = createCard(text .. ": " .. defaultKey.Name)
-            local listening = false
-            local keybind = Instance.new("TextButton", card)
-            keybind.Size = UDim2.new(0, 80, 0, 30)
-            keybind.Position = UDim2.new(1, -90, 0.5, -15)
-            keybind.BackgroundColor3 = theme.Accent
-            keybind.Text = defaultKey.Name
-            keybind.TextColor3 = theme.Background
-            keybind.Font = Enum.Font.GothamBold
-            keybind.TextSize = 14
-
-            local boundKey = defaultKey
-            keybind.MouseButton1Click:Connect(function()
-                keybind.Text = "..."
-                listening = true
-            end)
-
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if listening then
-                    boundKey = input.KeyCode
-                    keybind.Text = boundKey.Name
-                    label.Text = text .. ": " .. boundKey.Name
-                    listening = false
-                elseif input.KeyCode == boundKey then
-                    callback()
-                end
-            end)
-
-            table.insert(allElements, {button = keybind, card = card, label = label})
         end
 
         page.Visible = #contentHolder:GetChildren() == 1
