@@ -200,52 +200,52 @@ function EnigmaUI:Create(title)
         return api
     end
 
-    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        local query = searchBox.Text:lower()
-        local isEmpty = query == ""
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = searchBox.Text:lower()
+    local isEmpty = query == ""
 
-        for _, page in pairs(contentHolder:GetChildren()) do
-            local hasVisible = false
-            local matched = {}
+    local foundFirst = false
 
-            for _, card in pairs(page:GetChildren()) do
-                if card:IsA("Frame") then
-                    local label = card:FindFirstChildOfClass("TextLabel")
-                    local match = isEmpty or (label and label.Text:lower():find(query))
-                    card.Visible = match
-                    if match then
-                        table.insert(matched, card)
-                        hasVisible = true
-                    end
+    for _, page in pairs(contentHolder:GetChildren()) do
+        local hasVisible = false
+        local matched = {}
+
+        for _, card in pairs(page:GetChildren()) do
+            if card:IsA("Frame") then
+                local label = card:FindFirstChildOfClass("TextLabel")
+                local match = isEmpty or (label and label.Text:lower():find(query))
+                card.Visible = match
+                if match then
+                    table.insert(matched, card)
+                    hasVisible = true
                 end
             end
+        end
 
-            if isEmpty then
-                page.Visible = page == contentHolder:GetChildren()[1]
+        if isEmpty then
+            if not foundFirst then
+                page.Visible = true
+                foundFirst = true
             else
-                page.Visible = hasVisible
+                page.Visible = false
             end
-
-            for i, v in ipairs(matched) do
-                v.LayoutOrder = i
-            end
-
-            local count = #matched
-            for _, card in pairs(page:GetChildren()) do
-                if card:IsA("Frame") and not table.find(matched, card) then
-                    count += 1
-                    card.LayoutOrder = count
-                end
-            end
+        else
+            page.Visible = hasVisible
         end
 
-        for _, sidebarButton in pairs(sidebar:GetChildren()) do
-            if sidebarButton:IsA("TextButton") then
-                local page = contentHolder:FindFirstChild("Category_" .. sidebarButton.Text)
-                sidebarButton.Visible = isEmpty or (page and page.Visible)
-            end
+        for i, v in ipairs(matched) do
+            v.LayoutOrder = i
         end
-    end)
+    end
+
+    for _, sidebarButton in pairs(sidebar:GetChildren()) do
+        if sidebarButton:IsA("TextButton") then
+            local page = contentHolder:FindFirstChild("Category_" .. sidebarButton.Text)
+            sidebarButton.Visible = page and page.Visible
+        end
+    end
+end)
+
 
 
     return self
