@@ -1,97 +1,131 @@
-local Enigma = {}
 
--- Utility: simple instance constructor
-local function Create(class, props)
-    local inst = Instance.new(class)
-    for i,v in pairs(props) do
-        inst[i] = v
-    end
-    return inst
+--// Enigma UI Framework
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local EnigmaUI = {}
+EnigmaUI.__index = EnigmaUI
+
+-- Theme
+local theme = {
+    Background = Color3.fromRGB(30, 30, 30),
+    Topbar = Color3.fromRGB(40, 40, 40),
+    Sidebar = Color3.fromRGB(35, 35, 35),
+    Card = Color3.fromRGB(45, 45, 45),
+    Accent = Color3.fromRGB(0, 255, 127),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(180, 180, 180)
+}
+
+local function MakeDraggable(frame)
+    local dragToggle = nil
+    local dragInput, dragStart, startPos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragToggle = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragToggle = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragToggle then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
--- Main entry
-function Enigma.new(title, userId, buyer)
-    local self = {}
+function EnigmaUI:Create(title)
+    local self = setmetatable({}, EnigmaUI)
 
-    local gui = Create("ScreenGui", {
-        Name = "EnigmaUI",
-        ResetOnSpawn = false,
-        Parent = game:GetService("CoreGui")
-    })
+    -- ScreenGui
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "EnigmaUI"
+    gui.ResetOnSpawn = false
+    gui.Parent = CoreGui
 
-    local window = Create("Frame", {
-        Size = UDim2.new(0, 600, 0, 400),
-        Position = UDim2.new(0.5, -300, 0.5, -200),
-        BackgroundColor3 = Color3.fromRGB(25, 25, 25),
-        BorderSizePixel = 0,
-        Parent = gui
-    })
+    -- Main Frame
+    local main = Instance.new("Frame", gui)
+    main.Size = UDim2.new(0, 600, 0, 400)
+    main.Position = UDim2.new(0.5, -300, 0.5, -200)
+    main.BackgroundColor3 = theme.Background
+    main.BorderSizePixel = 0
+    main.Active = true
 
-    Create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-        Text = title or "Enigma UI",
-        Font = Enum.Font.GothamBold,
-        TextSize = 20,
-        TextColor3 = Color3.new(1, 1, 1),
-        Parent = window
-    })
+    local corner = Instance.new("UICorner", main)
+    corner.CornerRadius = UDim.new(0, 8)
 
-    local categories = {}
+    -- Topbar
+    local topbar = Instance.new("Frame", main)
+    topbar.Size = UDim2.new(1, 0, 0, 40)
+    topbar.BackgroundColor3 = theme.Topbar
+    Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 8)
 
-    function self:Category(name, icon)
-        local category = {}
+    local titleLabel = Instance.new("TextLabel", topbar)
+    titleLabel.Size = UDim2.new(1, 0, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title or "Enigma UI"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = theme.Text
 
-        local button = Create("TextButton", {
-            Size = UDim2.new(0, 100, 0, 30),
-            Position = UDim2.new(0, #categories * 105, 0, 50),
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-            Text = name,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextColor3 = Color3.new(1, 1, 1),
-            Parent = window
-        })
+    -- Sidebar
+    local sidebar = Instance.new("Frame", main)
+    sidebar.Position = UDim2.new(0, 0, 0, 40)
+    sidebar.Size = UDim2.new(0, 150, 1, -40)
+    sidebar.BackgroundColor3 = theme.Sidebar
+    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 8)
 
-        function category:Button(name, icon)
-            local subButton = {}
+    -- Container
+    local container = Instance.new("Frame", main)
+    container.Position = UDim2.new(0, 160, 0, 50)
+    container.Size = UDim2.new(1, -170, 1, -60)
+    container.BackgroundTransparency = 1
 
-            Create("TextButton", {
-                Size = UDim2.new(0, 120, 0, 25),
-                Position = UDim2.new(0, 20, 0, 100 + (#categories * 35)),
-                BackgroundColor3 = Color3.fromRGB(60, 60, 60),
-                Text = name,
-                Font = Enum.Font.Gotham,
-                TextSize = 12,
-                TextColor3 = Color3.new(1, 1, 1),
-                Parent = window
-            })
+    -- Dummy Card
+    local card = Instance.new("Frame", container)
+    card.Size = UDim2.new(1, 0, 0, 80)
+    card.Position = UDim2.new(0, 0, 0, 0)
+    card.BackgroundColor3 = theme.Card
+    local cardCorner = Instance.new("UICorner", card)
+    cardCorner.CornerRadius = UDim.new(0, 6)
 
-            function subButton:Section(title, side)
-                local section = {}
+    card.MouseEnter:Connect(function()
+        TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = theme.Accent}):Play()
+    end)
+    card.MouseLeave:Connect(function()
+        TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = theme.Card}):Play()
+    end)
 
-                Create("TextLabel", {
-                    Size = UDim2.new(0, 260, 0, 25),
-                    Position = side == "Right" and UDim2.new(0, 310, 0, 140) or UDim2.new(0, 20, 0, 140),
-                    BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-                    Text = title,
-                    Font = Enum.Font.GothamBold,
-                    TextSize = 14,
-                    TextColor3 = Color3.new(1, 1, 1),
-                    Parent = window
-                })
+    local cardText = Instance.new("TextLabel", card)
+    cardText.Size = UDim2.new(1, -20, 1, 0)
+    cardText.Position = UDim2.new(0, 10, 0, 0)
+    cardText.BackgroundTransparency = 1
+    cardText.Text = "This is a dummy card"
+    cardText.Font = Enum.Font.Gotham
+    cardText.TextSize = 16
+    cardText.TextColor3 = theme.Text
+    cardText.TextXAlignment = Enum.TextXAlignment.Left
 
-                return section
-            end
-
-            return subButton
-        end
-
-        table.insert(categories, category)
-        return category
-    end
+    -- Make main draggable via topbar
+    MakeDraggable(main)
 
     return self
 end
 
-return Enigma
+return EnigmaUI
