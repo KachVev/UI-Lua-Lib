@@ -1,254 +1,115 @@
 
---// Enigma UI Final
+-- Enigma UI Framework by KachVev
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
-local EnigmaUI = {}
-EnigmaUI.__index = EnigmaUI
+local Enigma = {}
 
 local theme = {
-    Background = Color3.fromRGB(30, 30, 30),
-    Topbar = Color3.fromRGB(40, 40, 40),
-    Sidebar = Color3.fromRGB(35, 35, 35),
-    Card = Color3.fromRGB(45, 45, 45),
-    Accent = Color3.fromRGB(0, 255, 127),
-    Text = Color3.fromRGB(255, 255, 255),
-    SubText = Color3.fromRGB(180, 180, 180)
+    Background = Color3.fromRGB(20, 20, 20),
+    TabBackground = Color3.fromRGB(25, 25, 25),
+    SectionBackground = Color3.fromRGB(30, 30, 30),
+    Border = Color3.fromRGB(40, 40, 40),
+    Accent = Color3.fromRGB(80, 200, 120),
+    Text = Color3.fromRGB(220, 220, 220),
+    SubText = Color3.fromRGB(150, 150, 150)
 }
 
-local function MakeDraggable(frame)
-    local dragToggle, dragInput, dragStart, startPos
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragToggle = true
-            dragStart = input.Position
-            startPos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragToggle = false
-                end
-            end)
-        end
-    end)
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragToggle then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                       startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
+function Enigma:Create(title)
+    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+    ScreenGui.Name = "EnigmaUI"
+    
+    local Main = Instance.new("Frame", ScreenGui)
+    Main.Size = UDim2.new(0, 600, 0, 400)
+    Main.Position = UDim2.new(0.5, -300, 0.5, -200)
+    Main.BackgroundColor3 = theme.Background
+    Main.BorderSizePixel = 0
+    Main.Name = "Main"
+    Main.Active = true
+    Main.Draggable = true
 
-function EnigmaUI:Create(title)
-    local self = setmetatable({}, EnigmaUI)
+    local TopBar = Instance.new("Frame", Main)
+    TopBar.Size = UDim2.new(1, 0, 0, 30)
+    TopBar.BackgroundColor3 = theme.TabBackground
+    TopBar.BorderSizePixel = 0
 
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EnigmaUI"
-    gui.ResetOnSpawn = false
+    local Title = Instance.new("TextLabel", TopBar)
+    Title.Size = UDim2.new(1, 0, 1, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = title
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 14
+    Title.TextColor3 = theme.Accent
 
-    local main = Instance.new("Frame", gui)
-    main.Size = UDim2.new(0, 650, 0, 500)
-    main.Position = UDim2.new(0.5, -325, 0.5, -250)
-    main.BackgroundColor3 = theme.Background
-    main.BorderSizePixel = 0
-    main.Active = true
-    MakeDraggable(main)
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+    local TabContainer = Instance.new("Frame", Main)
+    TabContainer.Position = UDim2.new(0, 0, 0, 30)
+    TabContainer.Size = UDim2.new(1, 0, 0, 30)
+    TabContainer.BackgroundColor3 = theme.Background
+    TabContainer.BorderSizePixel = 0
 
-    local topbar = Instance.new("Frame", main)
-    topbar.Size = UDim2.new(1, 0, 0, 40)
-    topbar.BackgroundColor3 = theme.Topbar
-    Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 8)
+    local Tabs = {}
+    local ActiveTab = nil
 
-    local titleLabel = Instance.new("TextLabel", topbar)
-    titleLabel.Size = UDim2.new(1, 0, 1, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title or "Enigma UI"
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 18
-    titleLabel.TextColor3 = theme.Text
+    function Enigma:Tab(name)
+        local TabButton = Instance.new("TextButton", TabContainer)
+        TabButton.Size = UDim2.new(0, 100, 1, 0)
+        TabButton.BackgroundColor3 = theme.TabBackground
+        TabButton.Text = name
+        TabButton.Font = Enum.Font.Gotham
+        TabButton.TextColor3 = theme.Text
+        TabButton.TextSize = 12
+        TabButton.BorderSizePixel = 0
 
-    task.spawn(function()
-        while task.wait(2) do
-            local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                TextColor3 = theme.Accent
-            })
-            fadeIn:Play()
-            fadeIn.Completed:Wait()
+        local TabFrame = Instance.new("ScrollingFrame", Main)
+        TabFrame.Position = UDim2.new(0, 0, 0, 60)
+        TabFrame.Size = UDim2.new(1, 0, 1, -60)
+        TabFrame.BackgroundColor3 = theme.Background
+        TabFrame.BorderSizePixel = 0
+        TabFrame.Visible = false
+        TabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        TabFrame.ScrollBarThickness = 6
+        TabFrame.Name = name .. "_Tab"
 
-            local fadeOut = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                TextColor3 = theme.Text
-            })
-            fadeOut:Play()
-            fadeOut.Completed:Wait()
-        end
-    end)
+        local Layout = Instance.new("UIListLayout", TabFrame)
+        Layout.Padding = UDim.new(0, 10)
+        Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local sidebar = Instance.new("Frame", main)
-    sidebar.Position = UDim2.new(0, 0, 0, 40)
-    sidebar.Size = UDim2.new(0, 150, 1, -40)
-    sidebar.BackgroundColor3 = theme.Sidebar
-    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 8)
-
-    local searchBox = Instance.new("TextBox", main)
-    searchBox.Size = UDim2.new(1, -160, 0, 30)
-    searchBox.Position = UDim2.new(0, 160, 0, 45)
-    searchBox.PlaceholderText = "Search..."
-    searchBox.Text = ""
-    searchBox.TextSize = 14
-    searchBox.Font = Enum.Font.Gotham
-    searchBox.TextColor3 = theme.Text
-    searchBox.BackgroundColor3 = theme.Card
-    Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 6)
-
-    local contentHolder = Instance.new("Folder", main)
-    contentHolder.Name = "ContentHolder"
-
-    local allElements = {}
-
-    function self:Category(name)
-        local button = Instance.new("TextButton", sidebar)
-        button.Size = UDim2.new(1, 0, 0, 40)
-        button.Text = name
-        button.Font = Enum.Font.Gotham
-        button.TextSize = 14
-        button.BackgroundColor3 = theme.Card
-        button.TextColor3 = theme.Text
-        Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
-
-        local page = Instance.new("Frame", contentHolder)
-        page.Size = UDim2.new(1, -170, 1, -100)
-        page.Position = UDim2.new(0, 160, 0, 80)
-        page.BackgroundTransparency = 1
-        page.Visible = false
-        page.Name = "Category_" .. name
-
-        button.MouseButton1Click:Connect(function()
-            for _, pg in pairs(contentHolder:GetChildren()) do
-                pg.Visible = false
+        TabButton.MouseButton1Click:Connect(function()
+            if ActiveTab then
+                ActiveTab.Visible = false
             end
-            page.Visible = true
+            ActiveTab = TabFrame
+            TabFrame.Visible = true
         end)
 
-        local function createCard(labelText)
-            local card = Instance.new("Frame", page)
-            card.Size = UDim2.new(1, 0, 0, 50)
-            card.BackgroundColor3 = theme.Card
-            Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+        Tabs[name] = TabFrame
 
-            local label = Instance.new("TextLabel", card)
-            label.Size = UDim2.new(1, -20, 1, 0)
-            label.Position = UDim2.new(0, 10, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Text = labelText
-            label.Font = Enum.Font.Gotham
-            label.TextSize = 14
-            label.TextColor3 = theme.Text
-            label.TextXAlignment = Enum.TextXAlignment.Left
+        local TabApi = {}
 
-            return card, label
+        function TabApi:Section(title)
+            local Section = Instance.new("Frame", TabFrame)
+            Section.Size = UDim2.new(1, -20, 0, 30)
+            Section.BackgroundColor3 = theme.SectionBackground
+            Section.BorderSizePixel = 0
+            Section.LayoutOrder = 1
+
+            local Label = Instance.new("TextLabel", Section)
+            Label.Size = UDim2.new(1, 0, 1, 0)
+            Label.BackgroundTransparency = 1
+            Label.Font = Enum.Font.GothamBold
+            Label.Text = title
+            Label.TextSize = 13
+            Label.TextColor3 = theme.Text
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+
+            return Section
         end
 
-        local api = {}
-
-        function api:Label(text)
-            local card, label = createCard(text)
-            table.insert(allElements, {button = button, card = card, label = label})
-        end
-
-        function api:Button(text, callback)
-            local card, label = createCard(text)
-            local button = Instance.new("TextButton", card)
-            button.Size = UDim2.new(0, 100, 0, 30)
-            button.Position = UDim2.new(1, -110, 0.5, -15)
-            button.BackgroundColor3 = theme.Accent
-            button.Text = "Run"
-            button.TextColor3 = theme.Background
-            button.Font = Enum.Font.GothamBold
-            button.TextSize = 14
-            button.MouseButton1Click:Connect(callback)
-            table.insert(allElements, {button = button, card = card, label = label})
-        end
-
-        function api:Toggle(text, default, callback)
-            local card, label = createCard(text)
-            local toggle = Instance.new("TextButton", card)
-            toggle.Size = UDim2.new(0, 60, 0, 30)
-            toggle.Position = UDim2.new(1, -70, 0.5, -15)
-            toggle.BackgroundColor3 = theme.Card
-            toggle.Text = default and "ON" or "OFF"
-            toggle.TextColor3 = default and theme.Accent or theme.SubText
-            toggle.Font = Enum.Font.GothamBold
-            toggle.TextSize = 14
-            local state = default
-            toggle.MouseButton1Click:Connect(function()
-                state = not state
-                toggle.Text = state and "ON" or "OFF"
-                toggle.TextColor3 = state and theme.Accent or theme.SubText
-                callback(state)
-            end)
-            table.insert(allElements, {button = toggle, card = card, label = label})
-        end
-
-        page.Visible = #contentHolder:GetChildren() == 1
-        return api
+        return TabApi
     end
 
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = searchBox.Text:lower()
-    local isEmpty = query == ""
-
-    local foundFirst = false
-
-    for _, page in pairs(contentHolder:GetChildren()) do
-        local hasVisible = false
-        local matched = {}
-
-        for _, card in pairs(page:GetChildren()) do
-            if card:IsA("Frame") then
-                local label = card:FindFirstChildOfClass("TextLabel")
-                local match = isEmpty or (label and label.Text:lower():find(query))
-                card.Visible = match
-                if match then
-                    table.insert(matched, card)
-                    hasVisible = true
-                end
-            end
-        end
-
-        if isEmpty then
-            if not foundFirst then
-                page.Visible = true
-                foundFirst = true
-            else
-                page.Visible = false
-            end
-        else
-            page.Visible = hasVisible
-        end
-
-        for i, v in ipairs(matched) do
-            v.LayoutOrder = i
-        end
-    end
-
-    for _, sidebarButton in pairs(sidebar:GetChildren()) do
-        if sidebarButton:IsA("TextButton") then
-            local page = contentHolder:FindFirstChild("Category_" .. sidebarButton.Text)
-            sidebarButton.Visible = page and page.Visible
-        end
-    end
-end)
-
-
-
-    return self
+    return Enigma
 end
 
-return EnigmaUI
+return Enigma
