@@ -3,134 +3,81 @@ local CoreGui = game:GetService("CoreGui")
 
 local NotificationLib = {}
 
-function NotificationLib:Notify(data)
-    assert(data.Name, "Missing Name")
-    assert(data.Content, "Missing Content")
-    assert(data.Image, "Missing Image")
-    assert(data.Time, "Missing Time")
+function NotificationLib:Notify(config)
+    local duration = config.Time or 3
 
-    -- Создание GUI
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "EnigmaNotificationUI"
-    ScreenGui.IgnoreGuiInset = true
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    ScreenGui.Parent = CoreGui
+    -- Create GUI container
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "CustomNotificationUI"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function() gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui") end)
+    if not gui.Parent then gui.Parent = CoreGui end
 
-    local Frame = Instance.new("Frame")
-    Frame.AnchorPoint = Vector2.new(1, 1)
-    Frame.Position = UDim2.new(1, -20, 1, -20)
-    Frame.Size = UDim2.new(0, 250, 0, 80)
-    Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Frame.BackgroundTransparency = 0.1
-    Frame.BorderSizePixel = 0
-    Frame.ClipsDescendants = true
-    Frame.Visible = false
-    Frame.Parent = ScreenGui
-    Frame.BackgroundTransparency = 1
-    Frame.Name = "NotificationFrame"
-    Frame:SetAttribute("Dead", false)
-    Frame.ZIndex = 50
-    Frame.AutomaticSize = Enum.AutomaticSize.None
-    Frame.SizeConstraint = Enum.SizeConstraint.RelativeXY
-    Frame:ApplyDescription(Enum.ApplyDescription.Never)
-    Frame:SetAttribute("Dead", false)
-    Frame:SetAttribute("FadeOut", false)
-    Frame:SetAttribute("CanFade", true)
-    Frame:SetAttribute("Init", true)
-    Frame:SetAttribute("FadeIn", true)
-    Frame:SetAttribute("Priority", 0)
-    Frame:SetAttribute("Ready", false)
-    Frame:SetAttribute("Timer", false)
-    Frame:SetAttribute("Sound", true)
-    Frame:SetAttribute("Animation", true)
-    Frame:SetAttribute("Original", true)
-    Frame:SetAttribute("Group", nil)
-    Frame:SetAttribute("Update", false)
-    Frame:SetAttribute("Direction", 1)
-    Frame:SetAttribute("Next", false)
-    Frame:SetAttribute("Skip", false)
-    Frame:SetAttribute("Pause", false)
-    Frame:SetAttribute("Started", false)
-    Frame:SetAttribute("Finished", false)
-    Frame:SetAttribute("Function", false)
-    Frame:SetAttribute("Transition", nil)
-    Frame:SetAttribute("Mouse", nil)
-    Frame:SetAttribute("Effect", false)
-    Frame:SetAttribute("Idle", false)
-    Frame:SetAttribute("Label", false)
-    Frame:SetAttribute("Result", false)
-    Frame:SetAttribute("Height", false)
-    Frame:SetAttribute("Lock", false)
-    Frame:SetAttribute("Counter", false)
-    Frame:SetAttribute("IconSize", false)
-    Frame:SetAttribute("Origin", false)
+    -- Main notification frame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 70)
+    frame.Position = UDim2.new(1, 320, 1, -100)
+    frame.AnchorPoint = Vector2.new(1, 1)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 100
+    frame.Parent = gui
 
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Frame.BackgroundTransparency = 0
-    Frame.BorderSizePixel = 0
-    Frame.ClipsDescendants = true
-    Frame.Name = "Notification"
-    Frame.Parent = ScreenGui
-    Frame.Visible = true
-    Frame.Size = UDim2.new(0, 300, 0, 80)
-    Frame.Position = UDim2.new(1, 320, 1, -100)
-    Frame.AnchorPoint = Vector2.new(1, 1)
-    Frame.BackgroundTransparency = 1
-    Frame.ZIndex = 10
-    Frame.AutomaticSize = Enum.AutomaticSize.None
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 8)
 
-    local UICorner = Instance.new("UICorner", Frame)
-    UICorner.CornerRadius = UDim.new(0, 8)
+    -- Icon
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 40, 0, 40)
+    icon.Position = UDim2.new(0, 10, 0.5, -20)
+    icon.BackgroundTransparency = 1
+    icon.Image = config.Image or ""
+    icon.ZIndex = 101
+    icon.Parent = frame
 
-    local Icon = Instance.new("ImageLabel")
-    Icon.Image = data.Image
-    Icon.Size = UDim2.new(0, 30, 0, 30)
-    Icon.Position = UDim2.new(0, 10, 0, 10)
-    Icon.BackgroundTransparency = 1
-    Icon.Parent = Frame
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -60, 0, 20)
+    title.Position = UDim2.new(0, 60, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Text = config.Name or "Notification"
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 101
+    title.Parent = frame
 
-    local Title = Instance.new("TextLabel")
-    Title.Text = data.Name
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    Title.TextColor3 = Color3.new(1, 1, 1)
-    Title.BackgroundTransparency = 1
-    Title.Position = UDim2.new(0, 50, 0, 10)
-    Title.Size = UDim2.new(1, -60, 0, 20)
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = Frame
+    -- Content
+    local content = Instance.new("TextLabel")
+    content.Size = UDim2.new(1, -60, 0, 20)
+    content.Position = UDim2.new(0, 60, 0, 35)
+    content.BackgroundTransparency = 1
+    content.Font = Enum.Font.Gotham
+    content.TextSize = 14
+    content.TextColor3 = Color3.fromRGB(200, 200, 200)
+    content.Text = config.Content or ""
+    content.TextXAlignment = Enum.TextXAlignment.Left
+    content.ZIndex = 101
+    content.Parent = frame
 
-    local Description = Instance.new("TextLabel")
-    Description.Text = data.Content
-    Description.Font = Enum.Font.Gotham
-    Description.TextSize = 14
-    Description.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Description.BackgroundTransparency = 1
-    Description.Position = UDim2.new(0, 50, 0, 35)
-    Description.Size = UDim2.new(1, -60, 0, 20)
-    Description.TextXAlignment = Enum.TextXAlignment.Left
-    Description.Parent = Frame
-
-    -- Анимация появления
-    Frame.Position = UDim2.new(1, 320, 1, -100)
-    Frame.BackgroundTransparency = 1
-    Frame.Visible = true
-
-    TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, -20),
-        BackgroundTransparency = 0
+    -- Animate in
+    TweenService:Create(frame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -20, 1, -20)
     }):Play()
 
-    -- Ждём, потом скрываем
-    task.delay(data.Time, function()
-        if Frame then
-            TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                Position = UDim2.new(1, 320, 1, -100),
-                BackgroundTransparency = 1
-            }):Play()
-            task.wait(0.3)
-            ScreenGui:Destroy()
-        end
+    -- Wait, then animate out
+    task.delay(duration, function()
+        local tween = TweenService:Create(frame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 320, 1, -100),
+            BackgroundTransparency = 1
+        })
+        tween:Play()
+        tween.Completed:Wait()
+        gui:Destroy()
     end)
 end
 
