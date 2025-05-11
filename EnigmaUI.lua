@@ -256,7 +256,6 @@ function EnigmaUI:Create(title)
         return api
     end
 
-        Обновления:
         local query = searchBox.Text:lower()
         for _, item in pairs(allElements) do
             local match = item.label.Text:lower():find(query)
