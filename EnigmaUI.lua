@@ -1,5 +1,5 @@
 
---// Enigma UI Full
+--// Enigma UI Final
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -75,15 +75,18 @@ function EnigmaUI:Create(title)
     titleLabel.TextColor3 = theme.Text
 
     task.spawn(function()
-        while true do
-            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        while task.wait(2) do
+            local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextColor3 = theme.Accent
-            }):Play()
-            task.wait(1)
-            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            })
+            fadeIn:Play()
+            fadeIn.Completed:Wait()
+
+            local fadeOut = TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextColor3 = theme.Text
-            }):Play()
-            task.wait(1)
+            })
+            fadeOut:Play()
+            fadeOut.Completed:Wait()
         end
     end)
 
@@ -136,7 +139,6 @@ function EnigmaUI:Create(title)
         local function createCard(labelText)
             local card = Instance.new("Frame", page)
             card.Size = UDim2.new(1, 0, 0, 50)
-            card.Position = UDim2.new(0, 0, 0, #page:GetChildren() * 55)
             card.BackgroundColor3 = theme.Card
             Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
 
@@ -194,73 +196,43 @@ function EnigmaUI:Create(title)
             table.insert(allElements, {button = toggle, card = card, label = label})
         end
 
-        function api:Slider(text, min, max, default, callback)
-            local card, label = createCard(text .. ": " .. tostring(default))
-            local slider = Instance.new("TextButton", card)
-            slider.Size = UDim2.new(0, 200, 0, 10)
-            slider.Position = UDim2.new(1, -210, 0.5, -5)
-            slider.BackgroundColor3 = theme.Accent
-            slider.Text = ""
-            local function update(pos)
-                local pct = math.clamp((pos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                local value = math.floor(min + (max - min) * pct)
-                label.Text = text .. ": " .. tostring(value)
-                callback(value)
-            end
-            slider.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    update(input.Position)
-                end
-            end)
-            UserInputService.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                    update(input.Position)
-                end
-            end)
-            table.insert(allElements, {button = slider, card = card, label = label})
-        end
-
-        function api:Bind(text, defaultKey, callback)
-            local card, label = createCard(text .. ": " .. defaultKey.Name)
-            local listening = false
-            local keybind = Instance.new("TextButton", card)
-            keybind.Size = UDim2.new(0, 80, 0, 30)
-            keybind.Position = UDim2.new(1, -90, 0.5, -15)
-            keybind.BackgroundColor3 = theme.Accent
-            keybind.Text = defaultKey.Name
-            keybind.TextColor3 = theme.Background
-            keybind.Font = Enum.Font.GothamBold
-            keybind.TextSize = 14
-
-            local boundKey = defaultKey
-            keybind.MouseButton1Click:Connect(function()
-                keybind.Text = "..."
-                listening = true
-            end)
-
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if listening then
-                    boundKey = input.KeyCode
-                    keybind.Text = boundKey.Name
-                    label.Text = text .. ": " .. boundKey.Name
-                    listening = false
-                elseif input.KeyCode == boundKey then
-                    callback()
-                end
-            end)
-
-            table.insert(allElements, {button = keybind, card = card, label = label})
-        end
-
         page.Visible = #contentHolder:GetChildren() == 1
         return api
     end
 
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local query = searchBox.Text:lower()
-        for _, item in pairs(allElements) do
-            local match = item.label.Text:lower():find(query)
-            if item.button then item.button.Visible = match ~= nil end
-            item.card.Visible = match ~= nil
+        for _, page in pairs(contentHolder:GetChildren()) do
+            local hasVisible = false
+            local matched = {}
+            for _, card in pairs(page:GetChildren()) do
+                if card:IsA("Frame") then
+                    local label = card:FindFirstChildOfClass("TextLabel")
+                    local match = label and label.Text:lower():find(query)
+                    card.Visible = match ~= nil
+                    if match then
+                        table.insert(matched, card)
+                        hasVisible = true
+                    end
+                end
+            end
+            page.Visible = hasVisible
+            for i, v in ipairs(matched) do
+                v.LayoutOrder = i
+            end
+            local count = #matched
+            for _, card in pairs(page:GetChildren()) do
+                if card:IsA("Frame") and not table.find(matched, card) then
+                    count += 1
+                    card.LayoutOrder = count
+                end
+            end
+        end
+        for _, sidebarButton in pairs(sidebar:GetChildren()) do
+            if sidebarButton:IsA("TextButton") then
+                local page = contentHolder:FindFirstChild("Category_" .. sidebarButton.Text)
+                sidebarButton.Visible = page and page.Visible
+            end
         end
     end)
 
