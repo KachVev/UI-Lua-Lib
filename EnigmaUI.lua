@@ -1,5 +1,5 @@
 
---// Enigma UI Framework v3 with global search
+--// Enigma UI Full
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -7,7 +7,6 @@ local CoreGui = game:GetService("CoreGui")
 local EnigmaUI = {}
 EnigmaUI.__index = EnigmaUI
 
--- Theme
 local theme = {
     Background = Color3.fromRGB(30, 30, 30),
     Topbar = Color3.fromRGB(40, 40, 40),
@@ -60,7 +59,6 @@ function EnigmaUI:Create(title)
     main.BorderSizePixel = 0
     main.Active = true
     MakeDraggable(main)
-
     Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
     local topbar = Instance.new("Frame", main)
@@ -75,6 +73,19 @@ function EnigmaUI:Create(title)
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextSize = 18
     titleLabel.TextColor3 = theme.Text
+
+    task.spawn(function()
+        while true do
+            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                TextColor3 = theme.Accent
+            }):Play()
+            task.wait(1)
+            TweenService:Create(titleLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                TextColor3 = theme.Text
+            }):Play()
+            task.wait(1)
+        end
+    end)
 
     local sidebar = Instance.new("Frame", main)
     sidebar.Position = UDim2.new(0, 0, 0, 40)
@@ -96,8 +107,7 @@ function EnigmaUI:Create(title)
     local contentHolder = Instance.new("Folder", main)
     contentHolder.Name = "ContentHolder"
 
-    local allCards = {}
-    local allCategoryButtons = {}
+    local allElements = {}
 
     function self:Category(name)
         local button = Instance.new("TextButton", sidebar)
@@ -107,7 +117,6 @@ function EnigmaUI:Create(title)
         button.TextSize = 14
         button.BackgroundColor3 = theme.Card
         button.TextColor3 = theme.Text
-        button.BorderSizePixel = 0
         Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
 
         local page = Instance.new("Frame", contentHolder)
@@ -117,29 +126,6 @@ function EnigmaUI:Create(title)
         page.Visible = false
         page.Name = "Category_" .. name
 
-        local dummyCard = Instance.new("Frame", page)
-        dummyCard.Size = UDim2.new(1, 0, 0, 70)
-        dummyCard.Position = UDim2.new(0, 0, 0, 0)
-        dummyCard.BackgroundColor3 = theme.Card
-        Instance.new("UICorner", dummyCard).CornerRadius = UDim.new(0, 6)
-
-        local dummyText = Instance.new("TextLabel", dummyCard)
-        dummyText.Size = UDim2.new(1, -20, 1, 0)
-        dummyText.Position = UDim2.new(0, 10, 0, 0)
-        dummyText.BackgroundTransparency = 1
-        dummyText.Text = name .. " Feature"
-        dummyText.Font = Enum.Font.Gotham
-        dummyText.TextSize = 14
-        dummyText.TextColor3 = theme.Text
-        dummyText.TextXAlignment = Enum.TextXAlignment.Left
-
-        button.MouseEnter:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = theme.Accent}):Play()
-        end)
-        button.MouseLeave:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = theme.Card}):Play()
-        end)
-
         button.MouseButton1Click:Connect(function()
             for _, pg in pairs(contentHolder:GetChildren()) do
                 pg.Visible = false
@@ -147,21 +133,134 @@ function EnigmaUI:Create(title)
             page.Visible = true
         end)
 
-        table.insert(allCards, {button = button, page = page, card = dummyCard, label = dummyText})
-        table.insert(allCategoryButtons, button)
+        local function createCard(labelText)
+            local card = Instance.new("Frame", page)
+            card.Size = UDim2.new(1, 0, 0, 50)
+            card.Position = UDim2.new(0, 0, 0, #page:GetChildren() * 55)
+            card.BackgroundColor3 = theme.Card
+            Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
 
-        if #allCategoryButtons == 1 then
-            page.Visible = true
+            local label = Instance.new("TextLabel", card)
+            label.Size = UDim2.new(1, -20, 1, 0)
+            label.Position = UDim2.new(0, 10, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Text = labelText
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            label.TextColor3 = theme.Text
+            label.TextXAlignment = Enum.TextXAlignment.Left
+
+            return card, label
         end
 
-        return page
+        local api = {}
+
+        function api:Label(text)
+            local card, label = createCard(text)
+            table.insert(allElements, {button = button, card = card, label = label})
+        end
+
+        function api:Button(text, callback)
+            local card, label = createCard(text)
+            local button = Instance.new("TextButton", card)
+            button.Size = UDim2.new(0, 100, 0, 30)
+            button.Position = UDim2.new(1, -110, 0.5, -15)
+            button.BackgroundColor3 = theme.Accent
+            button.Text = "Run"
+            button.TextColor3 = theme.Background
+            button.Font = Enum.Font.GothamBold
+            button.TextSize = 14
+            button.MouseButton1Click:Connect(callback)
+            table.insert(allElements, {button = button, card = card, label = label})
+        end
+
+        function api:Toggle(text, default, callback)
+            local card, label = createCard(text)
+            local toggle = Instance.new("TextButton", card)
+            toggle.Size = UDim2.new(0, 60, 0, 30)
+            toggle.Position = UDim2.new(1, -70, 0.5, -15)
+            toggle.BackgroundColor3 = theme.Card
+            toggle.Text = default and "ON" or "OFF"
+            toggle.TextColor3 = default and theme.Accent or theme.SubText
+            toggle.Font = Enum.Font.GothamBold
+            toggle.TextSize = 14
+            local state = default
+            toggle.MouseButton1Click:Connect(function()
+                state = not state
+                toggle.Text = state and "ON" or "OFF"
+                toggle.TextColor3 = state and theme.Accent or theme.SubText
+                callback(state)
+            end)
+            table.insert(allElements, {button = toggle, card = card, label = label})
+        end
+
+        function api:Slider(text, min, max, default, callback)
+            local card, label = createCard(text .. ": " .. tostring(default))
+            local slider = Instance.new("TextButton", card)
+            slider.Size = UDim2.new(0, 200, 0, 10)
+            slider.Position = UDim2.new(1, -210, 0.5, -5)
+            slider.BackgroundColor3 = theme.Accent
+            slider.Text = ""
+            local function update(pos)
+                local pct = math.clamp((pos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                local value = math.floor(min + (max - min) * pct)
+                label.Text = text .. ": " .. tostring(value)
+                callback(value)
+            end
+            slider.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    update(input.Position)
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                    update(input.Position)
+                end
+            end)
+            table.insert(allElements, {button = slider, card = card, label = label})
+        end
+
+        function api:Bind(text, defaultKey, callback)
+            local card, label = createCard(text .. ": " .. defaultKey.Name)
+            local listening = false
+            local keybind = Instance.new("TextButton", card)
+            keybind.Size = UDim2.new(0, 80, 0, 30)
+            keybind.Position = UDim2.new(1, -90, 0.5, -15)
+            keybind.BackgroundColor3 = theme.Accent
+            keybind.Text = defaultKey.Name
+            keybind.TextColor3 = theme.Background
+            keybind.Font = Enum.Font.GothamBold
+            keybind.TextSize = 14
+
+            local boundKey = defaultKey
+            keybind.MouseButton1Click:Connect(function()
+                keybind.Text = "..."
+                listening = true
+            end)
+
+            UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if listening then
+                    boundKey = input.KeyCode
+                    keybind.Text = boundKey.Name
+                    label.Text = text .. ": " .. boundKey.Name
+                    listening = false
+                elseif input.KeyCode == boundKey then
+                    callback()
+                end
+            end)
+
+            table.insert(allElements, {button = keybind, card = card, label = label})
+        end
+
+        page.Visible = #contentHolder:GetChildren() == 1
+        return api
     end
 
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local query = searchBox.Text:lower()
-        for _, item in pairs(allCards) do
-            local match = item.label.Text:lower():find(query) or item.button.Text:lower():find(query)
-            item.button.Visible = match ~= nil
+        for _, item in pairs(allElements) do
+            local match = item.label.Text:lower():find(query)
+            if item.button then item.button.Visible = match ~= nil end
             item.card.Visible = match ~= nil
         end
     end)
